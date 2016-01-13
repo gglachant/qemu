@@ -260,7 +260,7 @@ void mmap_fork_end(int child);
 
 /* main.c */
 extern unsigned long guest_stack_size;
-extern int do_qemu_execve;
+extern const char *qemu_execve_path;
 
 /* user access */
 

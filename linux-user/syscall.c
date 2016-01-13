@@ -5665,8 +5665,6 @@ static target_timer_t get_timer_id(abi_long arg)
 
 #define BINPRM_BUF_SIZE 128
 
-int do_qemu_execve;
-
 /* qemu_execve() Must return target values and target errnos. */
 static abi_long qemu_execve(char *filename, char *argv[],
                   char *envp[])
@@ -5735,7 +5733,7 @@ static abi_long qemu_execve(char *filename, char *argv[],
     for (i = 0; i < argc; i++)
         new_argp[i + offset] = argv[i];
 
-    new_argp[0] = strdup("/usr/bin/qemu-arm-static");
+    new_argp[0] = strdup(qemu_execve_path);
     new_argp[1] = strdup("-0");
     new_argp[offset] = filename;
     new_argp[argc + offset] = NULL;
@@ -5750,7 +5748,7 @@ static abi_long qemu_execve(char *filename, char *argv[],
         new_argp[2] = argv[0];
     }
 
-    return get_errno(execve("/usr/bin/qemu-arm-static", new_argp, envp));
+    return get_errno(execve(qemu_execve_path, new_argp, envp));
 }
 
 /* do_syscall() should always have a single exit point at the end so
@@ -6004,7 +6002,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
             if (!(p = lock_user_string(arg1)))
                 goto execve_efault;
 
-            if (do_qemu_execve)
+            if (qemu_execve_path)
                 ret = get_errno(qemu_execve(p, argp, envp));
             else
                 ret = get_errno(execve(p, argp, envp));

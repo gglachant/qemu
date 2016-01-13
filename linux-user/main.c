@@ -35,6 +35,7 @@
 #include "elf.h"
 
 char *exec_path;
+const char *qemu_execve_path = 0;
 
 int singlestep;
 static const char *filename;
@@ -3839,7 +3840,20 @@ static void handle_arg_guest_base(const char *arg)
 
 static void handle_arg_execve(const char *arg)
 {
-    do_qemu_execve = 1;
+    struct stat sb;
+    int rval;
+    rval = stat(arg, &sb);
+    if (rval == 0) {
+	if (S_ISREG(sb.st_mode) && sb.st_mode & S_IXUSR) {
+            qemu_execve_path = arg;
+        } else {
+            fprintf(stderr, "Error %s: not an executable\n", arg);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        fprintf(stderr, "Error %s: %s\n", arg, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void handle_arg_reserved_va(const char *arg)
@@ -3927,8 +3941,8 @@ static const struct qemu_argument arg_table[] = {
      "uname",      "set qemu uname release string to 'uname'"},
     {"B",          "QEMU_GUEST_BASE",  true,  handle_arg_guest_base,
      "address",    "set guest_base address to 'address'"},
-    {"execve",     "QEMU_EXECVE",      false, handle_arg_execve,
-     "",           "continue emulating when a process calls execve"},
+    {"execve",     "QEMU_EXECVE",      true,  handle_arg_execve,
+     "executable",       "continue emulating when a process calls execve by calling 'executable'"},
     {"R",          "QEMU_RESERVED_VA", true,  handle_arg_reserved_va,
      "size",       "reserve 'size' bytes for guest virtual address space"},
     {"d",          "QEMU_LOG",         true,  handle_arg_log,
